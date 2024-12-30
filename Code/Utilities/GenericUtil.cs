@@ -2,24 +2,24 @@ using System;
 
 namespace Common.Utilities
 {
-	public sealed class GameObjectFinder : Component
+	public static class Find : Object
 	{
-		public List<GameObject> FindGameObjectsByTag(string tag) 
+		public static List<GameObject> FindGameObjectsByTag(Scene scene, string tag) 
 		{
-			return Scene.GetAllObjects(true)
+			return scene.GetAllObjects(true)
 						.Where(go => go.Tags.Has(tag))
 						.ToList();
 		}
 
-		public List<GameObject> FindParentsByTag(string tag) 
+		public static List<GameObject> FindParentsByTag(Scene scene, string tag) 
 		{
-			return FindGameObjectsByTag(tag)
+			return FindGameObjectsByTag(scene, tag)
 						.Where(go => go.Parent.Tags.Has(tag) == false)
 						.ToList();
 		}
 	}
 
-	public sealed class Remove : Component
+	public static class Remove : Object
 	{
 		public static void Destroy<T>(T obj) where T : class
 		{
@@ -31,6 +31,12 @@ namespace Common.Utilities
 				
 			else 
 				throw new ArgumentException($"Unsupported type for destruction: {typeof(T)}");
+		}
+
+		public static void DestroyAll<T>(List<T> objects) where T : class
+		{
+			foreach (var obj in objects)
+				Destroy(obj);
 		}
 	}
 }
