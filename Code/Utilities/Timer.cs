@@ -9,6 +9,9 @@ namespace Utilities
     /// </summary>
     public class Timer : Component
     {
+		[Property] 
+		bool Logging { get; set; } = true;
+
         /// <summary>
         /// Duration of the timer in seconds.
         /// </summary>
@@ -69,6 +72,11 @@ namespace Utilities
         /// <param name="loopStopCount">Number of loops before the timer stops.</param>
         public void Set(float duration, Action onComplete = null, bool oneShot = true, bool autoStart = false, int loopStopCount = 0)
         {
+            if (duration <= 0)
+            {
+                throw new ArgumentException("Duration must be greater than 0.");
+            }
+
             if (oneShot && loopStopCount > 0)
             {
                 throw new ArgumentException("OneShot cannot be true while LoopStopCount is greater than 0.");
@@ -89,6 +97,8 @@ namespace Utilities
         {
             if (IsRunning) return;
             IsRunning = true;
+
+			if(LoopStopCount > 0) OneShot = false;
         }
 
         /// <summary>
@@ -107,16 +117,16 @@ namespace Utilities
         {
             elapsedTime = 0f;
             IsRunning = false;
-            Log.Info("Timer reset");
+            if (Logging) Log.Info("Timer reset");
         }
 
         /// <summary>
-        /// Resets the timer's elapsed time without stopping it.
+        /// Adjusts the elapsed time by a given amount.
         /// </summary>
-        public void Reset()
+        /// <param name="adjustment">The amount to adjust the elapsed time by.</param>
+        public void AdjustElapsedTime(float adjustment)
         {
-            elapsedTime = 0f;
-            Log.Info("Timer reset (but still running)");
+            elapsedTime = Math.Clamp(elapsedTime + adjustment, 0, Duration);
         }
 
         /// <summary>
@@ -151,24 +161,26 @@ namespace Utilities
 
             elapsedTime += Time.Delta;
 
-            if (elapsedTime >= Duration)
+            // Handle multiple potential completions in a single frame
+            while (elapsedTime >= Duration)
             {
-                IsRunning = false;
+                elapsedTime -= Duration;
 
-                // Execute the callback first
+                // Execute the callback
                 OnComplete?.Invoke();
 
-                if (!OneShot)
+                if (OneShot)
                 {
-                    LoopCount++;
+                    Stop();
+                    return;
+                }
 
-                    if (LoopStopCount > 0 && LoopCount >= LoopStopCount)
-                    {
-                        Stop();
-                        return;
-                    }
+                LoopCount++;
 
-                    Reset();
+                if (LoopStopCount > 0 && LoopCount >= LoopStopCount)
+                {
+                    Stop();
+                    return;
                 }
             }
         }
